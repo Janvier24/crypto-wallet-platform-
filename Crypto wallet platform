@@ -1,0 +1,67 @@
+const express = require("express");
+const cors = require("cors");
+const bodyParser = require("body-parser");
+const nodemailer = require("nodemailer");
+const crypto = require("crypto");
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Middleware
+app.use(cors());
+app.use(bodyParser.json());
+
+// Mock Database
+let users = [];
+
+// Deposit Logic
+app.post("/deposit", (req, res) => {
+  const { userId, amount } = req.body;
+  const user = users.find((u) => u.id === userId);
+  if (!user) {
+    return res.status(404).json({ message: "User not found" });
+  }
+
+  user.balance += parseFloat(amount);
+  res.status(200).json({
+    message: "Deposit successful!",
+    balance: user.balance,
+  });
+});
+
+// Withdrawal Logic
+app.post("/withdraw", (req, res) => {
+  const { userId, amount, walletAddress } = req.body;
+  const user = users.find((u) => u.id === userId);
+
+  if (!user) {
+    return res.status(404).json({ message: "User not found" });
+  }
+
+  if (amount > user.balance) {
+    return res.status(400).json({ message: "Insufficient balance" });
+  }
+
+  if (!walletAddress) {
+    return res.status(400).json({ message: "Wallet address is required" });
+  }
+
+  user.balance -= parseFloat(amount);
+
+  res.status(200).json({
+    message: "Withdrawal successful",
+    balance: user.balance,
+  });
+});
+
+// Mock user registration logic
+app.post("/register", (req, res) => {
+  const { name, email } = req.body;
+  const userId = crypto.randomBytes(8).toString("hex");
+  users.push({ id: userId, name, email, balance: 0 });
+  res.status(200).json({ message: "User registered", userId });
+});
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+})
